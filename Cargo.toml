@@ -2,7 +2,7 @@
 name = "blockchain"
 version = "0.1.0"
 description = "Generic Blockchain interface"
-license = "Apache-2"
+license = "Apache-2.0"
 repository = "https://github.com/sorpaas/blockchain-rs"
 authors = ["Wei Tang <hi@that.world>"]
 
