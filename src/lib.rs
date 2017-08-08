@@ -55,7 +55,10 @@ pub trait Block {
         &self, transactions: &[Self::Transaction], extra: &[Self::Extra],
         new_world_state_hash: Self::Hash
     ) -> Self;
-    fn unconsensusly_equal(&self, other: &Self) -> bool;
+    fn is_next(
+        &self, other: &Self,
+        transactions: &[Self::Transaction], extra: &[Self::Extra],
+        new_world_state_hash: Self::Hash) -> bool;
 }
 
 pub trait TransitionRule {
@@ -81,26 +84,34 @@ pub trait Definition {
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Blockchain<D: Definition> {
     current_block: D::Block,
-    world_state: D::WorldState,
+    current_world_state: D::WorldState,
 }
 
 impl<H, W: Hashable<H> + Default, T, E, B: Block<Transaction=T, Extra=E, Hash=H> + Default, D: Definition<WorldState=W, Transaction=T, Extra=E, Hash=H, Block=B>> Default for Blockchain<D> {
     fn default() -> Self {
         Self {
-            world_state: W::default(),
+            current_world_state: W::default(),
             current_block: B::default(),
         }
     }
 }
 
 impl<D: Definition> Blockchain<D> {
+    pub fn current_world_state(&self) -> &D::WorldState {
+        &self.current_world_state
+    }
+
+    pub fn current_block(&self) -> &D::Block {
+        &self.current_block
+    }
+
     pub fn mine(&mut self, transactions: &[D::Transaction]) {
         let mut extras = Vec::new();
         let mut world_state = None;
 
         for transaction in transactions {
             let ret = D::TransitionRule::transit(transaction, if world_state.is_none() {
-                &self.world_state
+                &self.current_world_state
             } else {
                 world_state.as_ref().unwrap()
             });
@@ -111,16 +122,16 @@ impl<D: Definition> Blockchain<D> {
         self.current_block = self.current_block.next(
             &transactions, &extras, world_state.as_ref().unwrap().hash());
         D::Consensus::mine(&mut self.current_block);
-        self.world_state = world_state.unwrap();
+        self.current_world_state = world_state.unwrap();
     }
 
-    pub fn verify(&mut self, transactions: &[D::Transaction], block: D::Block) -> bool {
+    pub fn verify(&mut self, block: D::Block, transactions: &[D::Transaction]) -> bool {
         let mut extras = Vec::new();
         let mut world_state = None;
 
         for transaction in transactions {
             let ret = D::TransitionRule::transit(transaction, if world_state.is_none() {
-                &self.world_state
+                &self.current_world_state
             } else {
                 world_state.as_ref().unwrap()
             });
@@ -128,12 +139,10 @@ impl<D: Definition> Blockchain<D> {
             extras.push(ret.1);
         }
 
-        let next_block = self.current_block.next(
-            transactions, &extras, world_state.as_ref().unwrap().hash());
-
-        if block.unconsensusly_equal(&next_block) {
+        if self.current_block.is_next(
+            &block, transactions, &extras, world_state.as_ref().unwrap().hash()) {
             self.current_block = block;
-            self.world_state = world_state.unwrap();
+            self.current_world_state = world_state.unwrap();
 
             true
         } else {

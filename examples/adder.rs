@@ -44,8 +44,12 @@ impl Block for AdderBlock {
         }
     }
 
-    fn unconsensusly_equal(&self, other: &AdderBlock) -> bool {
-        self.eq(other)
+    fn is_next(
+        &self, block: &AdderBlock,
+        transactions: &[usize], extra: &[()], new_world_state_hash: usize
+    ) -> bool {
+        block.number == self.number + 1 &&
+            block.sum == new_world_state_hash
     }
 }
 
