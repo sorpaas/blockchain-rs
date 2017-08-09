@@ -97,6 +97,13 @@ impl<H, W: Hashable<H> + Default, T, E, B: Block<Transaction=T, Extra=E, Hash=H>
 }
 
 impl<D: Definition> Blockchain<D> {
+    pub fn new(block: D::Block, world_state: D::WorldState) -> Self {
+        Self {
+            current_block: block,
+            current_world_state: world_state,
+        }
+    }
+
     pub fn current_world_state(&self) -> &D::WorldState {
         &self.current_world_state
     }
