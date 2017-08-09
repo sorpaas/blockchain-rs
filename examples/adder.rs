@@ -56,11 +56,12 @@ impl Block for AdderBlock {
 pub struct AdderTransitionRule;
 
 impl TransitionRule for AdderTransitionRule {
+    type Block = AdderBlock;
     type Transaction = usize;
     type Extra = ();
     type WorldState = usize;
 
-    fn transit(transaction: &usize, state: &usize) -> (usize, ()) {
+    fn transit(current_block: &AdderBlock, transaction: &usize, state: &usize) -> (usize, ()) {
         (*transaction + *state, ())
     }
 }

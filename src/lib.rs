@@ -62,11 +62,13 @@ pub trait Block {
 }
 
 pub trait TransitionRule {
+    type Block;
     type Transaction;
     type Extra;
     type WorldState;
 
     fn transit(
+        current_block: &Self::Block,
         transaction: &Self::Transaction, state: &Self::WorldState
     ) -> (Self::WorldState, Self::Extra);
 }
@@ -77,7 +79,7 @@ pub trait Definition {
     type Hash;
     type WorldState: Hashable<Self::Hash>;
     type Block: Block<Transaction=Self::Transaction, Extra=Self::Extra, Hash=Self::Hash>;
-    type TransitionRule: TransitionRule<Transaction=Self::Transaction, Extra=Self::Extra, WorldState=Self::WorldState>;
+    type TransitionRule: TransitionRule<Block=Self::Block, Transaction=Self::Transaction, Extra=Self::Extra, WorldState=Self::WorldState>;
     type Consensus: Consensus<Block=Self::Block, Extra=Self::Extra>;
 }
 
@@ -117,7 +119,7 @@ impl<D: Definition> Blockchain<D> {
         let mut world_state = None;
 
         for transaction in transactions {
-            let ret = D::TransitionRule::transit(transaction, if world_state.is_none() {
+            let ret = D::TransitionRule::transit(&self.current_block, transaction, if world_state.is_none() {
                 &self.current_world_state
             } else {
                 world_state.as_ref().unwrap()
@@ -137,7 +139,7 @@ impl<D: Definition> Blockchain<D> {
         let mut world_state = None;
 
         for transaction in transactions {
-            let ret = D::TransitionRule::transit(transaction, if world_state.is_none() {
+            let ret = D::TransitionRule::transit(&self.current_block, transaction, if world_state.is_none() {
                 &self.current_world_state
             } else {
                 world_state.as_ref().unwrap()
