@@ -1,16 +1,16 @@
 use std::marker::PhantomData;
 
-pub trait BlockHash<H: Copy> {
+pub trait HeaderHash<H: Copy> {
     fn parent_hash(&self) -> H;
-    fn block_hash(&self) -> H;
+    fn header_hash(&self) -> H;
 }
 
-pub trait BlockStore {
+pub trait HeaderStore {
     type Hash: Copy;
-    type Block: BlockHash<Self::Hash> + Ord;
+    type Header: HeaderHash<Self::Hash> + Ord;
 
-    fn get(&self, hash: Self::Hash) -> &Self::Block;
-    fn insert(&mut self, block: Self::Block);
+    fn get(&self, hash: Self::Hash) -> &Self::Header;
+    fn insert(&mut self, block: Self::Header);
 }
 
 pub struct Chain<H, B, S> {
@@ -19,7 +19,7 @@ pub struct Chain<H, B, S> {
     _block_marker: PhantomData<B>,
 }
 
-impl<H: Copy, B: BlockHash<H> + Ord, S: BlockStore<Hash=H, Block=B>> Chain<H, B, S> {
+impl<H: Copy, B: HeaderHash<H> + Ord, S: HeaderStore<Hash=H, Header=B>> Chain<H, B, S> {
     pub fn best(&self) -> &B {
         let best_hash = self.best_hash;
         self.get(best_hash)
@@ -30,7 +30,7 @@ impl<H: Copy, B: BlockHash<H> + Ord, S: BlockStore<Hash=H, Block=B>> Chain<H, B,
     }
 
     pub fn insert(&mut self, block: B) {
-        let extern_hash = block.block_hash();
+        let extern_hash = block.header_hash();
         let local_hash = self.best_hash;
         let best_hash = if &block > self.best() {
             extern_hash
