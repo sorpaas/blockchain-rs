@@ -1,3 +1,5 @@
+pub mod chain;
+
 use std::marker::PhantomData;
 
 pub trait Consensus {
