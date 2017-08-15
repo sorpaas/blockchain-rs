@@ -1,4 +1,5 @@
 pub mod chain;
+pub mod consensus;
 
 use std::marker::PhantomData;
 
