@@ -34,7 +34,18 @@ pub struct Chain<H, B, S> {
     _block_marker: PhantomData<B>,
 }
 
-impl<H: Copy, B: HeaderHash<H> + Ord, S: HeaderStore<Hash=H, Header=B>> Chain<H, B, S> {
+impl<H: Copy, B: HeaderHash<H> + Ord, S: HeaderStore<Hash=H, Header=B> + Default> Chain<H, B, S> {
+    pub fn new(genesis: B) -> Self {
+        let best_hash = genesis.header_hash();
+        let mut store = S::default();
+        store.put(genesis);
+
+        Self {
+            best_hash, store,
+            _block_marker: PhantomData,
+        }
+    }
+
     pub fn best(&self) -> &B {
         let best_hash = self.best_hash;
         self.fetch(best_hash).unwrap()
