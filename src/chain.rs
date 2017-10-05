@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::hash::Hash;
 
 pub trait HeaderHash<H: Copy> {
-    fn parent_hash(&self) -> H;
+    fn parent_hash(&self) -> Option<H>;
     fn header_hash(&self) -> H;
 }
 
@@ -36,6 +36,8 @@ pub struct Chain<H, B, S> {
 
 impl<H: Copy, B: HeaderHash<H> + Ord, S: HeaderStore<Hash=H, Header=B> + Default> Chain<H, B, S> {
     pub fn new(genesis: B) -> Self {
+        assert!(genesis.parent_hash().is_none());
+
         let best_hash = genesis.header_hash();
         let mut store = S::default();
         store.put(genesis);
@@ -56,7 +58,7 @@ impl<H: Copy, B: HeaderHash<H> + Ord, S: HeaderStore<Hash=H, Header=B> + Default
     }
 
     pub fn put(&mut self, block: B) -> bool {
-        if self.fetch(block.parent_hash()).is_none() {
+        if block.parent_hash().is_none() || self.fetch(block.parent_hash().unwrap()).is_none() {
             return false;
         }
 
@@ -71,5 +73,23 @@ impl<H: Copy, B: HeaderHash<H> + Ord, S: HeaderStore<Hash=H, Header=B> + Default
         self.best_hash = best_hash;
 
         return true;
+    }
+
+    pub fn last_hashes(&self, len: usize) -> Vec<H> {
+        let mut ret = Vec::new();
+        let mut current = self.best();
+
+        'a: while ret.len() < len {
+            ret.push(current.header_hash());
+
+            match current.parent_hash() {
+                Some(parent_hash) => {
+                    current = self.fetch(parent_hash).unwrap();
+                },
+                None => break 'a,
+            }
+        }
+
+        ret
     }
 }
