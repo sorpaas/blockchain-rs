@@ -55,7 +55,11 @@ impl<H: Copy, B: HeaderHash<H> + Ord, S: HeaderStore<Hash=H, Header=B> + Default
         self.store.fetch(hash)
     }
 
-    pub fn put(&mut self, block: B) {
+    pub fn put(&mut self, block: B) -> bool {
+        if self.fetch(block.parent_hash()).is_none() {
+            return false;
+        }
+
         let extern_hash = block.header_hash();
         let local_hash = self.best_hash;
         let best_hash = if &block > self.best() {
@@ -65,5 +69,7 @@ impl<H: Copy, B: HeaderHash<H> + Ord, S: HeaderStore<Hash=H, Header=B> + Default
         };
         self.store.put(block);
         self.best_hash = best_hash;
+
+        return true;
     }
 }
